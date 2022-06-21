@@ -1,11 +1,11 @@
 package main
 
 import (
-    "os"
+	"os"
 
-    "github.com/ideopunk/submitter/cli"
+	"github.com/ideopunk/cierran/cli"
 )
 
 func main() {
-    os.Exit(cli.Run())
+	os.Exit(cli.Run())
 }
