@@ -29,17 +29,19 @@ func init() {
 	cmd.PersistentFlags().BoolVarP(&pageNumbers, "page", "p", false, "Put page numbers in header")
 	cmd.PersistentFlags().BoolVarP(&authorName, "author", "a", false, "Put author name in header")
 	cmd.PersistentFlags().BoolVarP(&doubleSpace, "double", "d", false, "Double-space the document")
-
 	cmd.MarkPersistentFlagRequired("stories")
 
 }
 
 func Run() int {
 	if err := cmd.Execute(); err != nil {
+		println("errr")
 		fmt.Fprintf(os.Stderr, "CLI error: '%s'\n", err)
 		return 1
 	}
 
-	println(outputFile)
+	opt := Options{author: authorName, page: pageNumbers, double: doubleSpace}
+
+	Process(input, &opt)
 	return 0
 }
