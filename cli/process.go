@@ -19,6 +19,7 @@ func Process(inputs []string, options *Options) error {
 	}
 
 	docName := name + ".docx"
+	fmt.Println(options)
 	if options.output != "" {
 		docName = options.output
 	}
