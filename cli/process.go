@@ -12,37 +12,41 @@ import (
 
 func Process(inputs []string, options *Options) error {
 	name := nameFile(inputs)
+	markdownName := name + ".md"
+	docName := name + ".docx"
 
 	err := combineMarkdown(inputs, name+".md")
 	if err != nil {
 		return fmt.Errorf("could not combine markdown files: %w", err)
 	}
 
-	docName := name + ".docx"
 	fmt.Println(options)
 	if options.output != "" {
 		docName = options.output
 	}
 
-	if err := convertToDoc(name+".md", docName, options); err != nil {
+	if err := convertToDoc(markdownName, docName, options); err != nil {
 		return fmt.Errorf("could not convert to doc: %w", err)
 	}
 
-	if err := fiddleWithDoc(name+".docx", options); err != nil {
+	if err := fiddleWithDoc(docName, options); err != nil {
 		return fmt.Errorf("could not style doc: %w", err)
 
 	}
 
-	if err := deleteMarkdown(name + ".md"); err != nil {
+	if err := deleteMarkdown(markdownName); err != nil {
 		fmt.Println("\033[33m", fmt.Errorf("could not delete temp markdown file: %w", err))
 	}
 	return nil
 }
 
-func getTitle(fileName string) string {
+func getTitle(fileName string, ind int) string {
 	s := strings.TrimSuffix(fileName, filepath.Ext(fileName))
 	pretitle := strings.Replace(s, "-", "", -1)
 	title := "**" + strings.Title(pretitle) + "**\n\n"
+	if ind != 0 {
+		title = "\n```{=openxml}\n<w:p><w:r><w:br w:type=\"page\"/></w:r></w:p>\n```\n" + title
+	}
 	return title
 }
 
@@ -71,17 +75,24 @@ func combineMarkdown(inputs []string, name string) error {
 	defer file.Close()
 
 	for i, input := range inputs {
-		title := getTitle(input)
-		if i != 0 {
-			title = "\n\n" + title
-		}
+		println(input)
+		title := getTitle(input, i)
+
 		titleReader := strings.NewReader(title)
-		reader := strings.NewReader(input)
 
 		w := bufio.NewWriter(file)
 
-		_, err := io.Copy(w, titleReader)
+		file, err := os.Open(input)
 		if err != nil {
+			return fmt.Errorf("could not open %v: %w", input, err)
+		}
+
+		defer file.Close()
+
+		reader := bufio.NewReader(file)
+
+		println(reader)
+		if _, err := io.Copy(w, titleReader); err != nil {
 			return fmt.Errorf("could not write to %v: %w", name, err)
 		}
 
@@ -97,7 +108,7 @@ func combineMarkdown(inputs []string, name string) error {
 }
 
 func convertToDoc(markdownName string, docName string, options *Options) error {
-	cmd := exec.Command("pandoc", markdownName, `--from=markdown`, `--to=docx`, `-o `+docName)
+	cmd := exec.Command("pandoc", markdownName, `--from=markdown+backtick_code_blocks+raw_attribute`, `--to=docx`, `--output=`+docName)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
