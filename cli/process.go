@@ -15,7 +15,7 @@ func Process(inputs []string, options *Options) error {
 	markdownName := name + ".md"
 	docName := name + ".docx"
 
-	err := combineMarkdown(inputs, name+".md")
+	err := combineMarkdown(inputs, name+".md", options.double)
 	if err != nil {
 		return fmt.Errorf("could not combine markdown files: %w", err)
 	}
@@ -45,6 +45,7 @@ func getTitle(fileName string, ind int) string {
 	pretitle := strings.Replace(s, "-", "", -1)
 	title := "**" + strings.Title(pretitle) + "**\n\n"
 	if ind != 0 {
+		// for pieces after the first one, add a pagebreak
 		title = "\n```{=openxml}\n<w:p><w:r><w:br w:type=\"page\"/></w:r></w:p>\n```\n" + title
 	}
 	return title
@@ -65,7 +66,7 @@ func nameFile(inputs []string) string {
 	return fileName
 }
 
-func combineMarkdown(inputs []string, name string) error {
+func combineMarkdown(inputs []string, name string, double bool) error {
 	file, err := os.Create(name)
 
 	if err != nil {
@@ -74,13 +75,19 @@ func combineMarkdown(inputs []string, name string) error {
 
 	defer file.Close()
 
+	w := bufio.NewWriter(file)
+
+	if double {
+		startReader := strings.NewReader("::: {custom-style=\"Double\"}\n")
+		if _, err := io.Copy(w, startReader); err != nil {
+			return fmt.Errorf("could not write to %v: %w", name, err)
+		}
+	}
+
 	for i, input := range inputs {
-		println(input)
 		title := getTitle(input, i)
 
 		titleReader := strings.NewReader(title)
-
-		w := bufio.NewWriter(file)
 
 		file, err := os.Open(input)
 		if err != nil {
@@ -91,7 +98,6 @@ func combineMarkdown(inputs []string, name string) error {
 
 		reader := bufio.NewReader(file)
 
-		println(reader)
 		if _, err := io.Copy(w, titleReader); err != nil {
 			return fmt.Errorf("could not write to %v: %w", name, err)
 		}
@@ -100,15 +106,21 @@ func combineMarkdown(inputs []string, name string) error {
 			return fmt.Errorf("could not write to %v: %w", name, err)
 		}
 
-		w.Flush()
-
 	}
+
+	if double {
+		endReader := strings.NewReader("\n:::")
+		if _, err := io.Copy(w, endReader); err != nil {
+			return fmt.Errorf("could not write to %v: %w", name, err)
+		}
+	}
+	w.Flush()
 
 	return nil
 }
 
 func convertToDoc(markdownName string, docName string, options *Options) error {
-	cmd := exec.Command("pandoc", markdownName, `--from=markdown+backtick_code_blocks+raw_attribute`, `--to=docx`, `--output=`+docName)
+	cmd := exec.Command("pandoc", markdownName, `--from=markdown+backtick_code_blocks+raw_attribute`, `--to=docx`, `--output=`+docName, `--reference-doc=reference.docx`)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
