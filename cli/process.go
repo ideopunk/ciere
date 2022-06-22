@@ -5,22 +5,36 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
-	// "github.com/gogap/config"
-	// "github.com/gogap/go-pandoc/pandoc"
 )
 
 func Process(inputs []string, options *Options) error {
 	name := nameFile(inputs)
 
-	err := combineMarkdown(inputs, name)
+	err := combineMarkdown(inputs, name+".md")
 	if err != nil {
-		return fmt.Errorf("could not combine markdown files: %v", err)
+		return fmt.Errorf("could not combine markdown files: %w", err)
 	}
 
-	convertToDoc(name, options)
-	deleteMarkdown(name)
+	docName := name + ".docx"
+	if options.output != "" {
+		docName = options.output
+	}
+
+	if err := convertToDoc(name+".md", docName, options); err != nil {
+		return fmt.Errorf("could not convert to doc: %w", err)
+	}
+
+	if err := fiddleWithDoc(name+".docx", options); err != nil {
+		return fmt.Errorf("could not style doc: %w", err)
+
+	}
+
+	if err := deleteMarkdown(name + ".md"); err != nil {
+		fmt.Println("\033[33m", fmt.Errorf("could not delete temp markdown file: %w", err))
+	}
 	return nil
 }
 
@@ -47,11 +61,10 @@ func nameFile(inputs []string) string {
 }
 
 func combineMarkdown(inputs []string, name string) error {
-	mdName := name + ".md"
-	file, err := os.Create(mdName)
+	file, err := os.Create(name)
 
 	if err != nil {
-		return fmt.Errorf("could not create tmp.md: %v", err)
+		return fmt.Errorf("could not create tmp.md: %w", err)
 	}
 
 	defer file.Close()
@@ -66,14 +79,13 @@ func combineMarkdown(inputs []string, name string) error {
 
 		w := bufio.NewWriter(file)
 
-		uh, err := io.Copy(w, titleReader)
-		println(uh)
+		_, err := io.Copy(w, titleReader)
 		if err != nil {
-			return fmt.Errorf("could not write to %v: %v", mdName, err)
+			return fmt.Errorf("could not write to %v: %w", name, err)
 		}
 
 		if _, err := io.Copy(w, reader); err != nil {
-			return fmt.Errorf("could not write to %v: %v", mdName, err)
+			return fmt.Errorf("could not write to %v: %w", name, err)
 		}
 
 		w.Flush()
@@ -83,23 +95,23 @@ func combineMarkdown(inputs []string, name string) error {
 	return nil
 }
 
-func convertToDoc(name string, options *Options) error {
-	docName := name + ".docx"
-	println(docName)
-	// fetch := pandoc.FetcherOptions{}
-	// conv := pandoc.ConvertOptions{From: "markdown", To: "docx"}
-	// pdoc, err := pandoc.New(&config.Config{})
+func convertToDoc(markdownName string, docName string, options *Options) error {
+	cmd := exec.Command("pandoc", markdownName, `--from=markdown`, `--to=docx`, `-o `+docName)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 
-	// if err != nil {
-	// 	return fmt.Errorf("couldn't pandoc: %v", err)
-	// }
-
-	// pdoc.Convert(fetch, conv)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("couldn't pandoc: %w", err)
+	}
 
 	return nil
 }
 
-func deleteMarkdown(name string) {
-	mdName := name + ".md"
-	println(mdName)
+func fiddleWithDoc(name string, options *Options) error {
+	return nil
+}
+
+func deleteMarkdown(name string) error {
+	err := os.Remove(name)
+	return err
 }

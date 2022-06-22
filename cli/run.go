@@ -35,13 +35,15 @@ func init() {
 
 func Run() int {
 	if err := cmd.Execute(); err != nil {
-		println("errr")
 		fmt.Fprintf(os.Stderr, "CLI error: '%s'\n", err)
 		return 1
 	}
 
 	opt := Options{author: authorName, page: pageNumbers, double: doubleSpace}
 
-	Process(input, &opt)
+	if err := Process(input, &opt); err != nil {
+		fmt.Fprintf(os.Stderr, "processing error: '%s'\n", err)
+		return 1
+	}
 	return 0
 }
