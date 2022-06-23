@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/ideopunk/cierran/cli"
+	"github.com/ideopunk/ciere/cli"
 )
 
 func main() {

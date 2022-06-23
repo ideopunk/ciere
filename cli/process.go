@@ -8,6 +8,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/nguyenthenguyen/docx"
 )
 
 func Process(inputs []string, options *Options) error {
@@ -29,7 +31,7 @@ func Process(inputs []string, options *Options) error {
 		return fmt.Errorf("could not convert to doc: %w", err)
 	}
 
-	if err := fiddleWithDoc(docName, options); err != nil {
+	if err := fiddleWithHeader(docName, options); err != nil {
 		return fmt.Errorf("could not style doc: %w", err)
 
 	}
@@ -70,7 +72,7 @@ func combineMarkdown(inputs []string, name string, double bool) error {
 	file, err := os.Create(name)
 
 	if err != nil {
-		return fmt.Errorf("could not create tmp.md: %w", err)
+		return fmt.Errorf("could not create %v: %w", name, err)
 	}
 
 	defer file.Close()
@@ -114,13 +116,20 @@ func combineMarkdown(inputs []string, name string, double bool) error {
 			return fmt.Errorf("could not write to %v: %w", name, err)
 		}
 	}
+
 	w.Flush()
 
 	return nil
 }
 
 func convertToDoc(markdownName string, docName string, options *Options) error {
-	cmd := exec.Command("pandoc", markdownName, `--from=markdown+backtick_code_blocks+raw_attribute`, `--to=docx`, `--output=`+docName, `--reference-doc=reference.docx`)
+	cmd := exec.Command("pandoc", markdownName,
+		`--from=markdown+backtick_code_blocks+raw_attribute+hard_line_breaks`,
+		`--to=docx`,
+		`--output=`+docName,
+		`--reference-doc=reference.docx`,
+	)
+
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
@@ -131,7 +140,34 @@ func convertToDoc(markdownName string, docName string, options *Options) error {
 	return nil
 }
 
-func fiddleWithDoc(name string, options *Options) error {
+func fiddleWithHeader(name string, options *Options) error {
+	r, err := docx.ReadDocxFile(name)
+	if err != nil {
+		return fmt.Errorf("couldn't open docx we just made: %w", err)
+	}
+
+	docx := r.Editable()
+
+
+	docx.Replace("1", "ONE!!!", 1)
+	docx.ReplaceFooter("", "FOOT")
+	
+	// by default my pandoc reference doc includes page numbers. If `options.page` is false, we go in and remove them
+	if !options.page {
+		for i := 0; i < 10; i++ {
+			err := docx.ReplaceHeader(fmt.Sprint(i), "")
+			if err != nil {
+				return fmt.Errorf("could not update header: %w", err)
+			}
+		}
+
+	}
+
+	if options.author {
+		docx.ReplaceHeader(" ", "Conor Barnes")
+	}
+
+	r.Close()
 	return nil
 }
 
