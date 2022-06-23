@@ -8,8 +8,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-
-	"github.com/nguyenthenguyen/docx"
 )
 
 func Process(inputs []string, options *Options) error {
@@ -22,18 +20,12 @@ func Process(inputs []string, options *Options) error {
 		return fmt.Errorf("could not combine markdown files: %w", err)
 	}
 
-	fmt.Println(options)
 	if options.output != "" {
 		docName = options.output
 	}
 
 	if err := convertToDoc(markdownName, docName, options); err != nil {
 		return fmt.Errorf("could not convert to doc: %w", err)
-	}
-
-	if err := fiddleWithHeader(docName, options); err != nil {
-		return fmt.Errorf("could not style doc: %w", err)
-
 	}
 
 	if err := deleteMarkdown(markdownName); err != nil {
@@ -137,37 +129,6 @@ func convertToDoc(markdownName string, docName string, options *Options) error {
 		return fmt.Errorf("couldn't pandoc: %w", err)
 	}
 
-	return nil
-}
-
-func fiddleWithHeader(name string, options *Options) error {
-	r, err := docx.ReadDocxFile(name)
-	if err != nil {
-		return fmt.Errorf("couldn't open docx we just made: %w", err)
-	}
-
-	docx := r.Editable()
-
-
-	docx.Replace("1", "ONE!!!", 1)
-	docx.ReplaceFooter("", "FOOT")
-	
-	// by default my pandoc reference doc includes page numbers. If `options.page` is false, we go in and remove them
-	if !options.page {
-		for i := 0; i < 10; i++ {
-			err := docx.ReplaceHeader(fmt.Sprint(i), "")
-			if err != nil {
-				return fmt.Errorf("could not update header: %w", err)
-			}
-		}
-
-	}
-
-	if options.author {
-		docx.ReplaceHeader(" ", "Conor Barnes")
-	}
-
-	r.Close()
 	return nil
 }
 

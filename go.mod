@@ -4,7 +4,6 @@ go 1.17
 
 require (
 	github.com/spf13/cobra v1.5.0
-	github.com/nguyenthenguyen/docx v0.0.0-20220416032853-9fcb531443ea
 )
 
 require (

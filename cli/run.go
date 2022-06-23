@@ -9,8 +9,6 @@ import (
 
 var input []string
 var outputFile string
-var pageNumbers bool
-var authorName bool
 var doubleSpace bool
 
 var cmd = &cobra.Command{
@@ -26,8 +24,6 @@ var cmd = &cobra.Command{
 func init() {
 	cmd.PersistentFlags().StringArrayVarP(&input, "stories", "s", []string{}, "Files to submit (required)")
 	cmd.PersistentFlags().StringVarP(&outputFile, "output", "o", "", "Supply a name for the output file")
-	cmd.PersistentFlags().BoolVarP(&pageNumbers, "page", "p", false, "Put page numbers in header")
-	cmd.PersistentFlags().BoolVarP(&authorName, "author", "a", false, "Put author name in header")
 	cmd.PersistentFlags().BoolVarP(&doubleSpace, "double", "d", false, "Double-space the document")
 	cmd.MarkPersistentFlagRequired("stories")
 
@@ -38,7 +34,7 @@ func Run() int {
 		fmt.Fprintf(os.Stderr, "CLI error: '%s'\n", err)
 		return 1
 	}
-	opt := Options{author: authorName, page: pageNumbers, double: doubleSpace, output: outputFile}
+	opt := Options{double: doubleSpace, output: outputFile}
 	if err := Process(input, &opt); err != nil {
 		fmt.Fprintf(os.Stderr, "processing error: '%s'\n", err)
 		return 1
