@@ -8,29 +8,32 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 func Process(inputs []string, options *Options) error {
-	name := nameFile(inputs)
-	markdownName := name + ".md"
-	docName := name + ".docx"
-
-	err := combineMarkdown(inputs, name+".md", options.double)
+	name, err := nameFile(inputs, options.output)
 	if err != nil {
+		return fmt.Errorf("could not name file: %w", err)
+	}
+
+	markdownName := strings.TrimSuffix(name, ".docx") + ".md"
+
+	if err := combineMarkdown(inputs, markdownName, options.double); err != nil {
 		return fmt.Errorf("could not combine markdown files: %w", err)
 	}
 
-	if options.output != "" {
-		docName = options.output
-	}
-
-	if err := convertToDoc(markdownName, docName, options); err != nil {
+	if err := convertToDoc(markdownName, name, options); err != nil {
 		return fmt.Errorf("could not convert to doc: %w", err)
 	}
 
 	if err := deleteMarkdown(markdownName); err != nil {
 		fmt.Println("\033[33m", fmt.Errorf("could not delete temp markdown file: %w", err))
 	}
+
+	success(name)
 	return nil
 }
 
@@ -38,7 +41,8 @@ func Process(inputs []string, options *Options) error {
 func getTitle(fileName string, ind int) string {
 	s := strings.TrimSuffix(fileName, filepath.Ext(fileName))
 	pretitle := strings.Replace(s, "-", "", -1)
-	title := "**" + strings.Title(pretitle) + "**\n\n"
+	caser := cases.Title(language.English)
+	title := "**" + caser.String(pretitle) + "**\n\n"
 	if ind != 0 {
 		// for pieces after the first one, add a pagebreak
 		title = "\n```{=openxml}\n<w:p><w:r><w:br w:type=\"page\"/></w:r></w:p>\n```\n" + title
@@ -47,19 +51,31 @@ func getTitle(fileName string, ind int) string {
 }
 
 // create the name that will be used for the files.
-func nameFile(inputs []string) string {
-	fileName := ""
-
-	for ind, input := range inputs {
-		base := filepath.Base(input)
-		cleanBase := strings.TrimSuffix(base, filepath.Ext(input))
-		if ind != 0 {
-			fileName += "_"
-		}
-		fileName += cleanBase
+func nameFile(inputs []string, userAssignedOutput string) (string, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("could not access user home dir: %w", err)
 	}
 
-	return fileName
+	fileName := ""
+
+	if userAssignedOutput != "" {
+		fileName = homeDir + "/Documents/Writing/submissions/" + userAssignedOutput
+
+	} else {
+		for ind, input := range inputs {
+			base := filepath.Base(input)
+			cleanBase := strings.TrimSuffix(base, filepath.Ext(input))
+			if ind != 0 {
+				fileName += "_"
+			}
+			fileName += cleanBase
+		}
+		fileName = homeDir + "/Documents/Writing/submissions/" + fileName + ".docx"
+
+	}
+
+	return fileName, nil
 }
 
 func combineMarkdown(inputs []string, name string, double bool) error {
@@ -137,4 +153,9 @@ func convertToDoc(markdownName string, docName string, options *Options) error {
 func deleteMarkdown(name string) error {
 	err := os.Remove(name)
 	return err
+}
+
+func success(path string) {
+	base := filepath.Base(path)
+	fmt.Printf("\033[32m%s has been succesfully created!\n", base)
 }
