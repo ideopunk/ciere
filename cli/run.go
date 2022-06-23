@@ -30,10 +30,13 @@ func init() {
 }
 
 func Run() int {
+	// get our CLI flags
 	if err := cmd.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "CLI error: '%s'\n", err)
 		return 1
 	}
+
+	// turn turn turn
 	opt := Options{double: doubleSpace, output: outputFile}
 	if err := Process(input, &opt); err != nil {
 		fmt.Fprintf(os.Stderr, "processing error: '%s'\n", err)

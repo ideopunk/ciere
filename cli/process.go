@@ -34,6 +34,7 @@ func Process(inputs []string, options *Options) error {
 	return nil
 }
 
+// get the title of a piece for inclusion inside the final document. also include xml for a pagebreak if need be.
 func getTitle(fileName string, ind int) string {
 	s := strings.TrimSuffix(fileName, filepath.Ext(fileName))
 	pretitle := strings.Replace(s, "-", "", -1)
@@ -45,6 +46,7 @@ func getTitle(fileName string, ind int) string {
 	return title
 }
 
+// create the name that will be used for the files.
 func nameFile(inputs []string) string {
 	fileName := ""
 
