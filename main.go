@@ -3,9 +3,9 @@ package main
 import (
 	"os"
 
-	"github.com/ideopunk/ciere/cli"
+	"github.com/ideopunk/ciere/cmd"
 )
 
 func main() {
-	os.Exit(cli.Run())
+	os.Exit(cmd.Run())
 }

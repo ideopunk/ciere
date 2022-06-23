@@ -1,4 +1,4 @@
-package cli
+package cmd
 
 import (
 	"fmt"
@@ -13,7 +13,7 @@ var doubleSpace bool
 
 var cmd = &cobra.Command{
 	Use:     "ciere",
-	Version: "0.0.1",
+	Version: "1.0.0",
 	Short:   "Convert markdown into docx for submissions",
 	Long:    "Convert markdown into docx for submissions in the format publishers like",
 	Run: func(cmd *cobra.Command, args []string) {
