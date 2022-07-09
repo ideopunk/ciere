@@ -40,7 +40,7 @@ func Process(inputs []string, options *Options) error {
 // get the title of a piece for inclusion inside the final document. also include xml for a pagebreak if need be.
 func getTitle(fileName string, ind int) string {
 	s := strings.TrimSuffix(fileName, filepath.Ext(fileName))
-	pretitle := strings.Replace(s, "-", "", -1)
+	pretitle := strings.Replace(s, "-", " ", -1)
 	caser := cases.Title(language.English)
 	title := "**" + caser.String(pretitle) + "**\n\n"
 	if ind != 0 {
@@ -133,11 +133,16 @@ func combineMarkdown(inputs []string, name string, double bool) error {
 }
 
 func convertToDoc(markdownName string, docName string, options *Options) error {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("could not access user home dir: %w", err)
+	}
+
 	cmd := exec.Command("pandoc", markdownName,
 		`--from=markdown+backtick_code_blocks+raw_attribute+hard_line_breaks`,
 		`--to=docx`,
 		`--output=`+docName,
-		`--reference-doc=reference.docx`,
+		"--reference-doc="+homeDir+"/Documents/Writing/reference.docx",
 	)
 
 	cmd.Stdout = os.Stdout
